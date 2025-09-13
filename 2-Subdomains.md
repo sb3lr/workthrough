@@ -5,8 +5,11 @@
 ---
 
 ## الأدوات المستخدمة
+### 1. SecurityTrails
+مصدر لجمع النطاقات الفرعية الحديثة والتاريخية.
 
-### 1. subfinder
+
+### 1.2 subfinder
 - **الوظيفة:** جمع النطاقات الفرعية (subdomains) بشكل أوتوماتيكي.
 - **كيف يعمل:** يعتمد على OSINT ومصادر عامة مثل محركات البحث وواجهات API.
 - **ليش نستخدمه:** البداية المثالية لأي عملية ريكون للتأكد من إنك تمتلك صورة شاملة عن النطاقات التابعة للهدف.
@@ -30,7 +33,7 @@ subfinder -d example.com -silent -o subdomains.txt
 
 #### الأمر المستخدم:
 ```bash
-dnsx -l subdomains.txt -silent -o dns.txt
+dnsx -l subdomains.txt -o dns.txt
 ```
 - `-l subdomains.txt` → يقرأ القائمة اللي طلعت من subfinder.  
 - `-silent` → يطبع النتائج بدون أي إضافات.  
@@ -46,10 +49,12 @@ dnsx -l subdomains.txt -silent -o dns.txt
 
 #### الأمر المستخدم:
 ```bash
-httpx -l dns.txt -silent -o alive.txt
+httpx -l dns.txt -title -status-code -o alive.txt
 ```
 - `-l dns.txt` → ياخذ قائمة النطاقات المحلولة من dnsx.  
-- `-silent` → يطبع فقط النطاقات الشغالة.  
+- `-silent` → يطبع فقط النطاقات الشغالة.
+- `-title` → بييرجع لي عنوان الصفحة لو لقيته رجعني للرئيسيه اسحب عليه
+- `-status-code` → بيرجع لي رد الاستجابة 200 او غيره 
 - `-o alive.txt` → يحفظ النتائج في ملف اسمه alive.txt.  
 
 ---
