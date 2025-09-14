@@ -20,7 +20,6 @@
 subfinder -d example.com -silent -o subdomains.txt
 ```
 - `-d example.com` → يحدد الدومين الهدف.  
-- `-silent` → يخفي اللوجز والـ banners ويطبع النتائج فقط.  
 - `-o subdomains.txt` → يحفظ النتائج في ملف اسمه subdomains.txt.  
 
 ---
@@ -36,7 +35,6 @@ subfinder -d example.com -silent -o subdomains.txt
 dnsx -l subdomains.txt -o dns.txt
 ```
 - `-l subdomains.txt` → يقرأ القائمة اللي طلعت من subfinder.  
-- `-silent` → يطبع النتائج بدون أي إضافات.  
 - `-o dns.txt` → يحفظ النطاقات الصالحة في ملف اسمه dns.txt.  
 
 ---
@@ -52,7 +50,6 @@ dnsx -l subdomains.txt -o dns.txt
 httpx -l dns.txt -title -status-code -o alive.txt
 ```
 - `-l dns.txt` → ياخذ قائمة النطاقات المحلولة من dnsx.  
-- `-silent` → يطبع فقط النطاقات الشغالة.
 - `-title` → بييرجع لي عنوان الصفحة لو لقيته رجعني للرئيسيه اسحب عليه
 - `-status-code` → بيرجع لي رد الاستجابة 200 او غيره 
 - `-o alive.txt` → يحفظ النتائج في ملف اسمه alive.txt.  
