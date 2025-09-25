@@ -1,0 +1,117 @@
+# Recon Headers Analysis - Beginner-Friendly Guide
+
+## مقدمة
+
+مرحبًا في الحلقة الرابعة من سلسلة Recon للمبتدئين.
+
+في هذا الدليل سنتعلم خطوة بخطوة كيف نحلل **الهيدرز (Headers)** للمواقع، نثبت صفحات تسجيل الدخول والباراميترز، بدون أي استغلال. الهدف هو الفهم الكامل لكل خطوة وكيفية توثيق النتائج بطريقة آمنة.
+
+---
+
+## لماذا نفحص الهيدرز؟
+
+* الهيدرز تعطيك تعريف السيرفر، السياسات الأمنية، وخصائص الكوكيز.
+* تساعد على تحديد أدوات الفحص المناسبة.
+* توفر مؤشرات أولية على الثغرات المحتملة بدون التفاعل المباشر مع التطبيق.
+
+---
+
+## الهيدرز الأساسية التي نبحث عنها
+
+| Header                                        | لماذا نهتم                           | أمر للكشف                                           | تفسير عملي                          | خطورة                                             |                                     |             |
+| --------------------------------------------- | ------------------------------------ | --------------------------------------------------- | ----------------------------------- | ------------------------------------------------- | ----------------------------------- | ----------- |
+| Strict-Transport-Security (HSTS)              | يجبر الاتصال عبر HTTPS               | \`curl -sI [https://target.com](https://target.com) | grep -i Strict-Transport-Security\` | موجود → جيد، غير موجود → Medium/High حسب البيانات | Medium-High                         |             |
+| Content-Security-Policy (CSP)                 | يقلل XSS                             | \`curl -sI [https://target.com](https://target.com) | grep -i Content-Security-Policy\`   | غيابه → مؤشر مهم، CSP ضعيف → شبه بلا فائدة        | Medium-High                         |             |
+| X-Frame-Options                               | يمنع clickjacking                    | \`curl -sI [https://target.com](https://target.com) | grep -i X-Frame-Options\`           | غيابه → Low-Medium، حساسة → High                  | Low-High                            |             |
+| X-Content-Type-Options                        | يمنع MIME-sniffing                   | \`curl -sI [https://target.com](https://target.com) | grep -i X-Content-Type-Options\`    | غيابه → Low                                       | Low                                 |             |
+| Referrer-Policy / Permissions-Policy          | تحكم معلومات referrer وميزات المتصفح | -                                                   | غيابه عادة Low، خصوصًا للخصوصية     | Low                                               |                                     |             |
+| Set-Cookie flags (HttpOnly, Secure, SameSite) | حماية الكوكيز                        | \`curl -sI [https://target.com](https://target.com) | grep -i Set-Cookie -A1\`            | بدون HttpOnly → Medium-High، بدون Secure → High   | High                                |             |
+| Server / X-Powered-By                         | كشف الإصدار                          | \`curl -sI [https://target.com](https://target.com) | egrep -i "Server                    | X-Powered-By"\`                                   | كشف الإصدار → Info/Low، تحقق من CVE | Low-Depends |
+
+---
+
+## خطوات عملية
+
+### 1) جلب الهيدرز فقط
+
+```
+curl -I -sS https://target.com
+```
+
+### 2) حفظ الهيدرز والصفحة
+
+```
+curl -sS -D headers.txt -o body.html https://target.com
+```
+
+### 3) فحص هيدرز الأمان بسرعة
+
+```
+curl -sS -D - -o /dev/null https://target.com | egrep -i "Strict-Transport-Security|Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy|Set-Cookie|Server"
+```
+
+### 4) البحث عن صفحات تسجيل الدخول
+
+```
+grep -Ei "login|admin|signin|wp-login|auth" endpoints.txt > login_pages.txt
+```
+
+### 5) اختبار انعكاس باراميتر (non-destructive)
+
+```
+curl -sG "https://target.com/search" --data-urlencode "q=TEST_REFL_123" -D - | grep "TEST_REFL_123" || echo "Not reflected"
+```
+
+---
+
+## ماذا نبحث عنه ولماذا
+
+* HSTS: يمنع downgrade/SSL-stripping. بلّغ فوراً إذا صفحات auth أو دفع.
+* CSP: يحمي من XSS. غيابه أو CSP ضعيف → خطر Medium-High.
+* X-Frame-Options: مهم للصفحات الحساسة.
+* X-Content-Type-Options: يمنع sniffing.
+* Set-Cookie flags: غيابها على session cookie → High. بلّغ فوراً.
+* Server/X-Powered-By: تكشف الإصدار → سجل للتحقق من CVE.
+
+---
+
+## متى تتوقف وتبلغ فوراً
+
+* العثور على ملفات أسرار (\*.env, config.php مع credentials).
+* ظهور توكنات أو جلسات في الهيدرز أو الـ body.
+* ظهور بيانات حساسة للمستخدمين (passwords, PII).
+
+---
+
+## نموذج تبليغ جاهز
+
+```
+Subject: Non-intrusive findings — security headers & login pages on https://target.com
+
+Hi [Owner/Team],
+
+During a non-intrusive reconnaissance, collected HTTP headers and endpoints. Summary:
+
+1) Missing Content-Security-Policy
+   Evidence: headers.txt
+   Risk: Medium
+   Recommendation: Add restrictive CSP
+
+2) Login pages found: /login, /admin
+   Evidence: login_pages.txt
+   Risk: Medium
+   Recommendation: Enable rate-limiting & MFA
+
+3) Parameter reflection on /search?q=
+   Evidence: response saved
+   Risk: Medium
+   Recommendation: Apply server-side output encoding
+
+Regards, [Your Name]
+```
+
+---
+
+## نص قصير للمقطع (30-45 ثانية)
+
+> اليوم شفنا كيف نقرأ الهيدرز ونوثق صفحات تسجيل الدخول والباراميترز بدون استغلال. طبقوا curl -I، ابحثوا عن login/admin في ملفات الروابط، وجربوا انعكاس نص بسيط في باراميتر. بنتابع الحلقة الجاية بفحص الهيدرز المتقدم وcontent discovery.
