@@ -1,117 +1,171 @@
-# Recon Headers Analysis - Beginner-Friendly Guide
+السلام عليكم معاكم سعيد 
+شرح اليوم واحد من اهم الفحوصات اللي بنسويها وبنسجلها معنا في التقرير 
+واللي هي الهيدرز 
+راح نحلل كل هيدرز نحتاجه وليش نحتاجه وكيف نطلعه 
+قبل لاتنبرش على المقطع شوف المقاطع اللي قبل على شان تكون عندم نظرة شاملة للمقطع 
 
-## مقدمة
+بسم الله نبداء 
 
-مرحبًا في الحلقة الرابعة من سلسلة Recon للمبتدئين.
+اول شي وش هو الهيدرز ؟ 
+الهيدرز هي معلومات وصفيه تعلمك تفاصيل عن الطلب او الريكويست المرسل للموقع 
+مثال 
+زي تعريف السيرفر اليساسه الامنيه وخصاءص الكوكيز 
+بتساعدنا اننا نحدد وش بنفحص 
+وبعض الاحيان تعطينا مؤشرات فورية بدون تفاعل 
 
-في هذا الدليل سنتعلم خطوة بخطوة كيف نحلل **الهيدرز (Headers)** للمواقع، نثبت صفحات تسجيل الدخول والباراميترز، بدون أي استغلال. الهدف هو الفهم الكامل لكل خطوة وكيفية توثيق النتائج بطريقة آمنة.
+نخش في تفاصيل اكثر وش الهيدرز الأساسية اللي بندور عليها اساسا
+
+ستريكت
+
+HSTS strict transport security 
+هاذا بيجبر على الاتصال ب بروتوكول HTTPS 
+```
+curl -sI domain.com | grep -i Strict-Transport-Security
+```
+لو مو موجود بتقدر تكتبه في التقرير وتبلغ عنه لأنه يعتبر متوسط الى خطير
+على حسب نوع البيانات 
+
+
+
+Content-Security-Policy (CSP)
+هاذا وظيفته يقلل من هجوم الXSS او crose site script
+```
+curl -sI domin.com | grep -i Content-Security-Policy
+```
+
+X-Frame-Options 
+هاذا يمنع هجمات ال click jacking 
+```
+curl -sI domin.com | grep -i X-Frame-Options
+```
+
+X-Content-Type-Options
+سمنع التنصت زي ال MITM او Sniffing
+```
+curl -sI domin.com | grep -i X-Content-Type-Options
+```
+
+Set-Cookie Flags
+يحمي الكوكيز عبر (HttpOnly , Secure , SameSite)
+الثلاث ذيلا يعتبرون فلاقز او اتربيوتس اوحتى فلاتر كلها تجي 
+HttpOnly
+يمنع قراءة الكوكيز عبر جافا سكربت
+
+secure
+تجبر المتصفح يرسل الكوكيز عبر https
+
+SameSite
+يتحكم بارسال الكوكيز بين المواقع
+
+```
+curl -sI domine.com | grep -i Set-Cookie -A1
+```
+-A1 
+معناته after ليش نستخدمه عشان بعض الكوكيز يمتد اكثر من سطر فا ماراح يعرضه لنا كامل 
+
+Server / X-Powered-by
+يطلع لنا نوع السيرفر وبعض الاحيان التحديث و الثاني يعطيك التقنية او الفريمورك اللي شغال ورا الموقع 
+
+يعتبر low بس تقدر تتفلسف وتظيفه في التقرير لو تبي 
+```
+curl -sI domain.com | grep -i -E "Server|X-Powered-By"
+```
+
+طيب الحين عرفنا كيف نطلعها بس لسى ماعرفنا ليش خطيرة بالضبط
+ومتى نبلغ واعرف ان ذي خطيرة 
+
+
+# ملخص سريع للخطر والتبليغ — هيدرز الأمان 
+(HSTS, CSP, X-Frame-Options, nosniff, Set-Cookie flags, Server/X-Powered-By)
+
+هذا المستند يوضّح **ليش كل هيدر مهم**، **ليه غيابه خطير**، أوامر كشف سريعة، ومتى **تبلغ فورًا** — جاهز ترفعه مع تقريرك أو تعرضه على الشاشة في الفيديو.
 
 ---
 
-## لماذا نفحص الهيدرز؟
+## جدول مختصر
 
-* الهيدرز تعطيك تعريف السيرفر، السياسات الأمنية، وخصائص الكوكيز.
-* تساعد على تحديد أدوات الفحص المناسبة.
-* توفر مؤشرات أولية على الثغرات المحتملة بدون التفاعل المباشر مع التطبيق.
-
----
-
-## الهيدرز الأساسية التي نبحث عنها
-
-| Header                                        | لماذا نهتم                           | أمر للكشف                                           | تفسير عملي                          | خطورة                                             |                                     |             |
-| --------------------------------------------- | ------------------------------------ | --------------------------------------------------- | ----------------------------------- | ------------------------------------------------- | ----------------------------------- | ----------- |
-| Strict-Transport-Security (HSTS)              | يجبر الاتصال عبر HTTPS               | \`curl -sI [https://target.com](https://target.com) | grep -i Strict-Transport-Security\` | موجود → جيد، غير موجود → Medium/High حسب البيانات | Medium-High                         |             |
-| Content-Security-Policy (CSP)                 | يقلل XSS                             | \`curl -sI [https://target.com](https://target.com) | grep -i Content-Security-Policy\`   | غيابه → مؤشر مهم، CSP ضعيف → شبه بلا فائدة        | Medium-High                         |             |
-| X-Frame-Options                               | يمنع clickjacking                    | \`curl -sI [https://target.com](https://target.com) | grep -i X-Frame-Options\`           | غيابه → Low-Medium، حساسة → High                  | Low-High                            |             |
-| X-Content-Type-Options                        | يمنع MIME-sniffing                   | \`curl -sI [https://target.com](https://target.com) | grep -i X-Content-Type-Options\`    | غيابه → Low                                       | Low                                 |             |
-| Referrer-Policy / Permissions-Policy          | تحكم معلومات referrer وميزات المتصفح | -                                                   | غيابه عادة Low، خصوصًا للخصوصية     | Low                                               |                                     |             |
-| Set-Cookie flags (HttpOnly, Secure, SameSite) | حماية الكوكيز                        | \`curl -sI [https://target.com](https://target.com) | grep -i Set-Cookie -A1\`            | بدون HttpOnly → Medium-High، بدون Secure → High   | High                                |             |
-| Server / X-Powered-By                         | كشف الإصدار                          | \`curl -sI [https://target.com](https://target.com) | egrep -i "Server                    | X-Powered-By"\`                                   | كشف الإصدار → Info/Low، تحقق من CVE | Low-Depends |
+| الهيدر                                                  | شو يحمي؟                                                     |                                                          ليش غيابه خطير؟ |     | متى تبلغ فورًا؟                                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------ | -----------------------------------------------------------------------: | --- | ----------------------------------------------------------------------------------- |
+| **HSTS**                                                | يجبر المتصفح على استخدام HTTPS                               |                           يسمح بهجمات SSL-stripping وMITM → سرقة الجلسات |     | صفحات مصادقة/دفع → بلّغ فورًا                                                       |
+| **CSP**                                                 | يقيّد مصادر الجافاسكربت ويقلل أثر XSS                        | غيابه أو وجود `unsafe-inline` يسمح بتنفيذ سكربت خارجي → سرقة كوكيز/جلسات |     | لو لقيت انعكاس باراميتر (reflection) أو دلائل XSS → بلّغ فورًا                      |
+| **X-Frame-Options**                                     | يمنع عرض الصفحة داخل iframe من مواقع أخرى (منع clickjacking) |                          غيابه يسمح لخداع المستخدم للضغط على عناصر حساسة |     | صفحات إدارة أو دفع → بلّغ فورًا`                                                    |
+| **X-Content-Type-Options: nosniff**                     | يمنع المتصفح من تخمين نوع الملف (MIME sniffing)              |                              غيابه قد يسهّل تحميل محتوى خبيث على أنه آمن |     | أنظمة رفع ملفات (uploads) حساسة → بلّغ إذا مفقود`                                   |
+| **Set-Cookie flags** (`HttpOnly`, `Secure`, `SameSite`) | ضبط كيفية إرسال/قراءة الكوكيز (حماية من XSS, MITM, CSRF)     |     غياب أي منها على كوكي الجلسة يؤدي إلى سرقة جلسة أو تنفيذ طلبات مزيفة |     | أي **session cookie** بدون `HttpOnly` أو `Secure` أو `SameSite` مناسب → بلّغ فورًا` |
+| **Server / X-Powered-By**                               | يكشف تقنية/إصدار السيرفر                                     |                          يعطي مهاجمين خريطة لمعرفة CVE المرتبطة بالإصدار |     | إذا الإصدار قديم ويوجد CVE معروفة → بلّغ فورًا مع مرجع CVE                          |
 
 ---
 
-## خطوات عملية
+## شروحات سريعة لكل حالة (نص تشرح فيه للمشاهد أو تضعه في التقرير)
 
-### 1) جلب الهيدرز فقط
+### HSTS
 
-```
-curl -I -sS https://target.com
-```
+- **ليه مهم:** يمنع الهجمات التي تخفض الاتصال من HTTPS إلى HTTP (SSL-stripping).
+    
+- **ماذا تفعل لو غير موجود؟** سجّل كـ `Missing HSTS` في التقرير واطلب تمكينه خصوصًا لصفحات المصادقة والدفع.
+    
 
-### 2) حفظ الهيدرز والصفحة
+### CSP
 
-```
-curl -sS -D headers.txt -o body.html https://target.com
-```
+- **ليه مهم:** حتى لو وُجد XSS، CSP الجيد يقيّد حقول التنفيذ ويجعل سرقة كوكيز أصعب.
+    
+- **كيف تعطيه تصنيف؟** إذا موجود لكن يحتوي `unsafe-inline` أو `*` → ضع `Weak CSP` واعتبره شبه معدوم.
+    
 
-### 3) فحص هيدرز الأمان بسرعة
+### X-Frame-Options
 
-```
-curl -sS -D - -o /dev/null https://target.com | egrep -i "Strict-Transport-Security|Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy|Set-Cookie|Server"
-```
+- **تحذير عملي:** عرض الصفحة في iframe من موقع آخر قد يسمح لخداع المستخدم للضغط على زرٍ يؤدي لعملية مالية.
+    
 
-### 4) البحث عن صفحات تسجيل الدخول
+### X-Content-Type-Options
 
-```
-grep -Ei "login|admin|signin|wp-login|auth" endpoints.txt > login_pages.txt
-```
+- **متى تهتم أكثر؟** لو الموقع يسمح برفع ملفات للمستخدمين — غيابه يزيد مخاطر استغلال رفع ملفات.
+    
 
-### 5) اختبار انعكاس باراميتر (non-destructive)
+### Set-Cookie flags
 
-```
-curl -sG "https://target.com/search" --data-urlencode "q=TEST_REFL_123" -D - | grep "TEST_REFL_123" || echo "Not reflected"
-```
+- **تحقق عملي:** ركز على كوكيز تحمل أسماء `session`, `auth`, `wp_logged_in`, `wordpress_sec` — هذه يجب أن تحمل `HttpOnly; Secure; SameSite=Lax/Strict`.
+    
+
+### Server / X-Powered-By
+
+- **ملاحظة مهمة:** لا تبلّغ لمجرد الوجود. تحقق من رقم الإصدار وابحث عن CVE مرتبطة قبل إرسال بلاغ.
+    
+
+---
+
+## أمثلة نصية قصيرة للعرض على الشاشة (3-سطور لكل هيدر)
+
+- **HSTS:** "HSTS يجبر المتصفح على HTTPS — إذا مفقود على صفحات تسجيل الدخول/الدفع، بلّغ فورًا."
+    
+- **CSP:** "CSP يحد من مصادر الجافاسكربت — غيابه أو وجود unsafe-inline يخفض الأمان ضد XSS."
+    
+- **X-Frame-Options:** "يمنع clickjacking — مهم لصفحات الإدارة والدفع."
+    
+- **nosniff:** "X-Content-Type-Options: nosniff يمنع المتصفح من تخمين نوع الملف."
+    
+- **Set-Cookie flags:** "HttpOnly, Secure, SameSite — ثلاث حراسات على الكوكي، غياب أي واحد منهم على الجلسة يعني تبليغ فورًا."
+    
+- **Server/X-Powered-By:** "معلومة مفيدة لتوجيه الفحص — لكن استدل على CVE قبل البلاغ."
+    
 
 ---
 
-## ماذا نبحث عنه ولماذا
 
-* HSTS: يمنع downgrade/SSL-stripping. بلّغ فوراً إذا صفحات auth أو دفع.
-* CSP: يحمي من XSS. غيابه أو CSP ضعيف → خطر Medium-High.
-* X-Frame-Options: مهم للصفحات الحساسة.
-* X-Content-Type-Options: يمنع sniffing.
-* Set-Cookie flags: غيابها على session cookie → High. بلّغ فوراً.
-* Server/X-Powered-By: تكشف الإصدار → سجل للتحقق من CVE.
-
----
 
 ## متى تتوقف وتبلغ فوراً
 
-* العثور على ملفات أسرار (\*.env, config.php مع credentials).
+* العثور على ملفات أسرار
+* (.env, config.php مع credentials).
 * ظهور توكنات أو جلسات في الهيدرز أو الـ body.
 * ظهور بيانات حساسة للمستخدمين (passwords, PII).
 
----
 
-## نموذج تبليغ جاهز
+انتهى شرح الجزء الاول من الهيدرز اتمنى اللكل استفاد لاتنسى الاشترك ومشاركة المقطع والايك اذا عجبك المقطع وحط تعليقك اذا فيه اي سؤال بخصوص شرح اليوم صلو على النبي والسلام عليكم
 
-```
-Subject: Non-intrusive findings — security headers & login pages on https://target.com
 
-Hi [Owner/Team],
 
-During a non-intrusive reconnaissance, collected HTTP headers and endpoints. Summary:
 
-1) Missing Content-Security-Policy
-   Evidence: headers.txt
-   Risk: Medium
-   Recommendation: Add restrictive CSP
 
-2) Login pages found: /login, /admin
-   Evidence: login_pages.txt
-   Risk: Medium
-   Recommendation: Enable rate-limiting & MFA
 
-3) Parameter reflection on /search?q=
-   Evidence: response saved
-   Risk: Medium
-   Recommendation: Apply server-side output encoding
 
-Regards, [Your Name]
-```
 
----
-
-## نص قصير للمقطع (30-45 ثانية)
-
-> اليوم شفنا كيف نقرأ الهيدرز ونوثق صفحات تسجيل الدخول والباراميترز بدون استغلال. طبقوا curl -I، ابحثوا عن login/admin في ملفات الروابط، وجربوا انعكاس نص بسيط في باراميتر. بنتابع الحلقة الجاية بفحص الهيدرز المتقدم وcontent discovery.
