@@ -60,7 +60,7 @@ grep "open" scans/topports.gnmap | cut -d' ' -f2 | sort -u > scans/targets_with_
 ## 4) التأكد من وجود أهداف
 
 ``` bash
-[ -s scans/targets_with_open.txt ]
+cat scans/targets_with_open.txt
 ```
 
 -   يتحقق إن الملف غير فارغ.\
